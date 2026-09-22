@@ -1,0 +1,50 @@
+# Prompt: make a GitHub Action (manual) that scans a menu PDF on a Windows runner and updates MainItems.js.
+# Reason: let maintainers regenerate the tracked menu data on demand from a PDF URL.
+name: Scan menu PDF
+
+on:
+  workflow_dispatch:
+    inputs:
+      menu_pdf_url:
+        description: Menu PDF URL to scan
+        required: true
+        default: https://weversfood.nl/wp-content/uploads/2025/11/2025-dec-BROODJES-WEBSITE.pdf
+        type: string
+
+# Prompt: make a GitHub Action (manual) that scans a menu PDF on a Windows runner and updates MainItems.js.
+# Reason: grant the workflow permission to commit the regenerated tracked file to its triggering branch.
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: windows-latest
+    steps:
+      - name: Check out the triggering branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      # Prompt: read the menu PDF, which needs pypdf on top of the standard library.
+      # Reason: the generator extracts the PDF text before it rebuilds MainItems.js.
+      - name: Install pypdf
+        shell: pwsh
+        run: py -3 -m pip install --disable-pip-version-check pypdf
+
+      # Prompt: make a GitHub Action (manual) that scans a menu PDF on a Windows runner and updates MainItems.js.
+      # Reason: run the generator against the supplied PDF URL.
+      - name: Scan menu PDF
+        shell: pwsh
+        run: py -3 scrape_menu_pdf.py "${{ inputs.menu_pdf_url }}" --out .
+
+      # Prompt: publish the generated menu only when its content changed, avoiding empty commits.
+      - name: Commit updated MainItems.js
+        shell: pwsh
+        run: |
+          if (-not (git diff --quiet -- MainItems.js)) {
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add MainItems.js
+            git commit -m "chore: update scanned menu"
+            git push origin "HEAD:${{ github.ref }}"
+          }
