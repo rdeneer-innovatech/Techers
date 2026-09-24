@@ -89,6 +89,18 @@
     }
 
     const priceList = menuPrices();
+    // Prompt: tell the difference between "this item has no price" and "no prices came through at all".
+    // Reason: an older or cached MainItems.js has no PRICE keys, which used to blame every single item.
+    const priceCount = priceList ? Object.keys(priceList).length : 0;
+    const hasPrices = priceCount > 0;
+    const hasRules = Object.keys(menuRules).length > 0;
+
+    function priceSourceMessage() {
+      if (!menu) { return 'MainItems.js did not load, so no prices are available. Run the “Scan menu PDF” action, then reload this page.'; }
+      if (hasPrices) { return `Prices loaded from the menu data (${priceCount} items).`; }
+      if (hasRules) { return 'The menu loaded without prices, so your browser is serving an older MainItems.js. Reload with Ctrl+F5.'; }
+      return 'The committed menu data has no prices yet. Run the “Scan menu PDF” action to regenerate MainItems.js and MenuRules.js, then reload.';
+    }
 
     // Prompt: price an order from the item paths its issue body holds.
     // Reason: the app joins the clicked tiles into "Category\Item[\Bread]", which is the key the menu prices use.
@@ -111,9 +123,7 @@
     function customerRows() {
       const container = byId('customers');
       container.replaceChildren();
-      byId('priceSource').textContent = priceList
-        ? `Prices loaded from the menu data (${Object.keys(priceList).length} items).`
-        : 'MainItems.js was not found: run the “Scan menu PDF” action to commit it, or type each total below.';
+      byId('priceSource').textContent = priceSourceMessage();
       if (!storedOrders.length) { container.innerHTML = '<p class="empty">No orders were passed from the overview. Return to the overview and select Create payment info.</p>'; return; }
       const heading = document.createElement('h2'); heading.textContent = 'Order totals'; container.append(heading);
       storedOrders.forEach((order, index) => {
@@ -126,11 +136,20 @@
           line.textContent = `${item.count} × ${readablePath(item.name)} — ${euros(item.total)}`;
           lines.append(line);
         });
-        priced.unknown.forEach(name => {
+        // Only flag single items once prices are actually available, so a stale menu is reported once above.
+        if (hasPrices) {
+          priced.unknown.forEach(name => {
+            const line = document.createElement('p'); line.className = 'unknown';
+            line.textContent = `No printed price for “${name}”, so add it to this total yourself.`;
+            lines.append(line);
+          });
+        } else {
           const line = document.createElement('p'); line.className = 'unknown';
-          line.textContent = `No printed price for “${name}”, so add it to this total yourself.`;
+          line.textContent = priced.unknown.length
+            ? `No prices available for ${priced.unknown.length} item${priced.unknown.length === 1 ? '' : 's'}, so type the total yourself.`
+            : 'No prices available, so type the total yourself.';
           lines.append(line);
-        });
+        }
         const label = document.createElement('label'); label.textContent = 'Item total (€)';
         const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.step = '0.01';
         input.value = (priced.total / 100).toFixed(2); input.dataset.customer = index;
@@ -178,8 +197,10 @@
       const deliveryNote = shipping ? '' : ' (free from €55,00)';
       const minimumNote = itemSum > 0 && itemSum < DELIVERY_MINIMUM ? ' · Below the €35,00 delivery minimum on the menu.' : '';
       const unpriced = storedOrders.reduce((count, order) => count + priceOrder(order).unknown.length, 0);
-      const unknownNote = unpriced ? ` · ${unpriced} item${unpriced === 1 ? '' : 's'} had no printed price, so check those totals.` : '';
-      byId('summary').textContent = `Order items: ${euros(itemSum)} · Delivery: ${euros(shipping)}${deliveryNote} · Total to collect: ${euros(itemSum + shipping)}${minimumNote}${unknownNote}`;
+      const priceNote = !hasPrices
+        ? ' · No prices in the menu data: type the item totals yourself.'
+        : (unpriced ? ` · ${unpriced} item${unpriced === 1 ? '' : 's'} had no printed price, so check those totals.` : '');
+      byId('summary').textContent = `Order items: ${euros(itemSum)} · Delivery: ${euros(shipping)}${deliveryNote} · Total to collect: ${euros(itemSum + shipping)}${minimumNote}${priceNote}`;
     }
     customerRows();
     byId('holder').addEventListener('input', updateCreateAvailability);

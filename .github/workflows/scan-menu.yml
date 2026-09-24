@@ -1,5 +1,5 @@
 # Prompt: make a GitHub Action (manual) that scans a menu PDF on a Windows runner and updates MainItems.js.
-# Reason: let maintainers regenerate the tracked menu data and its printed prices on demand from a PDF URL.
+# Reason: let maintainers regenerate the tracked menu data on demand from a PDF URL.
 name: Scan menu PDF
 
 on:
@@ -26,26 +26,25 @@ jobs:
           ref: ${{ github.ref }}
 
       # Prompt: read the menu PDF, which needs pypdf on top of the standard library.
-      # Reason: the generator extracts the PDF text, including its prices, before it rebuilds the generated files.
+      # Reason: the generator extracts the PDF text before it rebuilds MainItems.js.
       - name: Install pypdf
         shell: pwsh
         run: py -3 -m pip install --disable-pip-version-check pypdf
 
       # Prompt: make a GitHub Action (manual) that scans a menu PDF on a Windows runner and updates MainItems.js.
-      # Reason: run the generator against the supplied PDF URL; it writes MainItems.js and MenuRules.js.
+      # Reason: run the generator against the supplied PDF URL.
       - name: Scan menu PDF
         shell: pwsh
         run: py -3 scrape_menu_pdf.py "${{ inputs.menu_pdf_url }}" --out .
 
-      # Prompt: publish the generated menu and rules only when their content changed, avoiding empty commits.
-      # Reason: stage first, because a brand-new MenuRules.js is untracked and invisible to plain git diff.
-      - name: Commit updated MainItems.js and MenuRules.js
+      # Prompt: publish the generated menu only when its content changed, avoiding empty commits.
+      - name: Commit updated MainItems.js
         shell: pwsh
         run: |
-          git add MainItems.js MenuRules.js
-          if (-not (git diff --cached --quiet)) {
+          if (-not (git diff --quiet -- MainItems.js)) {
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add MainItems.js
             git commit -m "chore: update scanned menu"
             git push origin "HEAD:${{ github.ref }}"
           }
