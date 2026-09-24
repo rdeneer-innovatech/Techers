@@ -26,8 +26,13 @@
     .customer h3 { margin: 0 0 8px; overflow-wrap: anywhere; }
     .order-lines { margin: 0 0 10px; } .order-lines p { margin: 2px 0; }
     .unknown { color: #a2601a; }
+    /* The delivery share and the amount to collect are shown before any QR code is made. */
+    .card-totals { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; }
+    .card-totals p { margin: 2px 0; }
+    .payable { font-size: 19px; font-weight: 800; }
+    #createHint { min-height: 1.2em; margin: 0 0 8px; }
     @media (max-width: 650px) { main { margin: 0; border-radius: 0; padding: 18px; } .settings { grid-template-columns: 1fr; } }
-    @media print { body { background: #fff; } main { margin: 0; max-width: none; } .settings, .actions, .email { display: none; } .payment { break-inside: avoid; } }
+    @media print { body { background: #fff; } main { margin: 0; max-width: none; } .settings, .actions, .email, #createHint { display: none; } .payment { break-inside: avoid; } }
   </style>
 </head>
 <body>
@@ -40,6 +45,7 @@
     </section>
     <p class="muted" id="priceSource" aria-live="polite"></p>
     <div class="actions"><button id="create" type="button" disabled>Create payment info</button><button class="secondary" id="print" type="button">Print</button></div>
+    <p class="muted" id="createHint" aria-live="polite"></p>
     <p id="summary" aria-live="polite"></p>
     <section id="customers" aria-label="Customer totals"></section>
     <section id="payments" class="payments" aria-label="Customer payment QR codes"></section>
@@ -120,9 +126,54 @@
 
     const readablePath = path => path.split('\\').join(' · ');
 
+    // Prompt: read every customer's item total and split the printed delivery fee across them.
+    // Reason: the totals are shown before any QR code exists, so the same split has to be reusable.
+    function currentTotals() {
+      const inputs = [...byId('customers').querySelectorAll('input[data-customer]')];
+      const itemTotals = inputs.map(input => cents(input.value));
+      const itemSum = itemTotals.reduce((sum, value) => sum + value, 0);
+      // Nothing ordered means nothing to deliver, so the fixed fee must not appear on its own.
+      const delivery = itemSum > 0 ? deliveryCost(itemSum) : 0;
+      const count = itemTotals.length;
+      const baseShare = count ? Math.floor(delivery / count) : 0;
+      const remainder = count ? delivery % count : 0;
+      const shares = itemTotals.map((total, index) => baseShare + (index < remainder ? 1 : 0));
+      return { itemTotals: itemTotals, itemSum: itemSum, delivery: delivery, shares: shares, count: count };
+    }
+
+    function summaryText(totals) {
+      const notes = [];
+      if (totals.delivery === 0) { notes.push('free from €55,00'); }
+      if (totals.itemSum > 0 && totals.itemSum < DELIVERY_MINIMUM) { notes.push('below the €35,00 delivery minimum on the menu'); }
+      if (!hasPrices) { notes.push('no prices in the menu data, so type the item totals yourself'); }
+      const unpriced = hasPrices ? storedOrders.reduce((count, order) => count + priceOrder(order).unknown.length, 0) : 0;
+      if (unpriced) { notes.push(`${unpriced} item${unpriced === 1 ? '' : 's'} had no printed price`); }
+      const base = `Order items: ${euros(totals.itemSum)} · Delivery: ${euros(totals.delivery)} · Total to collect: ${euros(totals.itemSum + totals.delivery)}`;
+      return notes.length ? `${base} · ${notes.join(' · ')}` : base;
+    }
+
+    const customerCards = [];
+
+    // Prompt: keep the delivery share and amount payable visible while the totals are typed.
+    // Reason: without this the shipping only appeared after the IBAN was entered and QR codes were made.
+    function renderTotals() {
+      if (!storedOrders.length) { return; }
+      const totals = currentTotals();
+      storedOrders.forEach((order, index) => {
+        const card = customerCards[index];
+        if (!card) { return; }
+        card.share.textContent = totals.count > 1
+          ? `Delivery share ${euros(totals.shares[index])} of ${euros(totals.delivery)}`
+          : `Delivery ${euros(totals.shares[index])}`;
+        card.payable.textContent = `Total to pay ${euros(totals.itemTotals[index] + totals.shares[index])}`;
+      });
+      byId('summary').textContent = summaryText(totals);
+    }
+
     function customerRows() {
       const container = byId('customers');
       container.replaceChildren();
+      customerCards.length = 0;
       byId('priceSource').textContent = priceSourceMessage();
       if (!storedOrders.length) { container.innerHTML = '<p class="empty">No orders were passed from the overview. Return to the overview and select Create payment info.</p>'; return; }
       const heading = document.createElement('h2'); heading.textContent = 'Order totals'; container.append(heading);
@@ -154,9 +205,16 @@
         const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.step = '0.01';
         input.value = (priced.total / 100).toFixed(2); input.dataset.customer = index;
         input.setAttribute('aria-label', `Item total for ${order.title}`);
+        input.addEventListener('input', renderTotals);
         label.append(input);
-        card.append(who, lines, label); container.append(card);
+        const totalsBox = document.createElement('div'); totalsBox.className = 'card-totals';
+        const share = document.createElement('p'); share.className = 'breakdown';
+        const payable = document.createElement('p'); payable.className = 'payable';
+        totalsBox.append(share, payable);
+        customerCards[index] = { share: share, payable: payable };
+        card.append(who, lines, label, totalsBox); container.append(card);
       });
+      renderTotals();
     }
 
     // Prompt: require a name and IBAN before QR generation.
@@ -165,24 +223,19 @@
       const holder = byId('holder').value.trim(); const iban = byId('iban').value.replace(/\s/g, '').toUpperCase();
       const ready = storedOrders.length > 0 && holder.length > 0 && validIban(iban);
       byId('create').disabled = !ready;
-      if (!ready) {
-        byId('payments').replaceChildren();
-        byId('summary').textContent = holder && iban ? 'Enter a valid IBAN to create payment information.' : 'Enter the account holder name and IBAN to enable QR generation.';
-      }
+      // The hint lives beside the button so the live totals in #summary are never overwritten.
+      byId('createHint').textContent = ready ? '' : (holder || iban ? 'Enter a valid IBAN to create payment information.' : 'Enter the account holder name and IBAN to enable QR generation.');
+      if (!ready) { byId('payments').replaceChildren(); }
     }
 
     // Prompt: sum the priced totals first, then apply the printed delivery rule.
     // Reason: the fee is fixed at €3,95 and drops to €0 once the combined order reaches €55,00.
     function createPaymentInfo() {
       const holder = byId('holder').value.trim(); const iban = byId('iban').value.replace(/\s/g, '').toUpperCase();
-      if (!holder || !validIban(iban)) { byId('summary').textContent = 'Enter an account holder and a valid IBAN first.'; return; }
-      const inputs = [...byId('customers').querySelectorAll('input[data-customer]')]; const payments = byId('payments'); payments.replaceChildren();
-      let itemSum = 0;
-      const itemTotals = inputs.map(input => { const itemTotal = cents(input.value); itemSum += itemTotal; return itemTotal; });
-      const shipping = deliveryCost(itemSum); const count = itemTotals.length;
-      const baseShare = count ? Math.floor(shipping / count) : 0; const remainder = count ? shipping % count : 0;
-      itemTotals.forEach((itemTotal, index) => {
-        const deliveryShare = baseShare + (index < remainder ? 1 : 0); const total = itemTotal + deliveryShare;
+      if (!holder || !validIban(iban)) { byId('createHint').textContent = 'Enter an account holder and a valid IBAN first.'; return; }
+      const totals = currentTotals(); const payments = byId('payments'); payments.replaceChildren();
+      totals.itemTotals.forEach((itemTotal, index) => {
+        const deliveryShare = totals.shares[index]; const total = itemTotal + deliveryShare;
         const order = storedOrders[index]; const reference = `Lunch ${order.title}`;
         const card = document.createElement('article'); card.className = 'payment';
         const name = document.createElement('h2'); name.textContent = order.title;
@@ -194,13 +247,7 @@
         mail.href = `mailto:${encodeURIComponent(order.title)}?subject=${encodeURIComponent('Techers Food payment request')}&body=${encodeURIComponent(`Please pay ${euros(total)} to ${holder}, IBAN ${iban}. Reference: ${reference}.`)}`;
         card.append(name, amount, breakdown, qr, details, mail); payments.append(card);
       });
-      const deliveryNote = shipping ? '' : ' (free from €55,00)';
-      const minimumNote = itemSum > 0 && itemSum < DELIVERY_MINIMUM ? ' · Below the €35,00 delivery minimum on the menu.' : '';
-      const unpriced = storedOrders.reduce((count, order) => count + priceOrder(order).unknown.length, 0);
-      const priceNote = !hasPrices
-        ? ' · No prices in the menu data: type the item totals yourself.'
-        : (unpriced ? ` · ${unpriced} item${unpriced === 1 ? '' : 's'} had no printed price, so check those totals.` : '');
-      byId('summary').textContent = `Order items: ${euros(itemSum)} · Delivery: ${euros(shipping)}${deliveryNote} · Total to collect: ${euros(itemSum + shipping)}${minimumNote}${priceNote}`;
+      renderTotals();
     }
     customerRows();
     byId('holder').addEventListener('input', updateCreateAvailability);
