@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Techers Food payment information</title>
   <style>
-    /* Prompt: create payment information with divided shipping and QR codes from the order overview. */
+    /* Prompt: create payment information with the menu PDF's delivery fee and QR codes from the order overview. */
     /* Reason: give every customer a clear, printable SEPA payment request after the combined order is priced. */
     :root { color-scheme: light; --ink: #252525; --muted: #656565; --line: #c7c7c7; --panel: #f3f3f3; }
     * { box-sizing: border-box; }
@@ -13,7 +13,7 @@
     main { max-width: 1100px; margin: 28px auto; padding: 28px; background: #fff; border-radius: 16px; }
     h1 { margin-top: 0; } .muted { color: var(--muted); }
     .settings, .payment { border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin: 18px 0; }
-    .settings { display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 14px; background: var(--panel); }
+    .settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; background: var(--panel); }
     label { display: grid; gap: 5px; font-weight: 600; } input { width: 100%; padding: 9px; border: 1px solid #999; border-radius: 7px; font: inherit; }
     button, .email { display: inline-block; padding: 10px 14px; border: 1px solid #555; border-radius: 8px; background: #333; color: #fff; font: inherit; cursor: pointer; text-decoration: none; }
     button:disabled { cursor: not-allowed; opacity: .5; }
@@ -22,6 +22,10 @@
     .payment h2 { margin-top: 0; overflow-wrap: anywhere; } .amount { font-size: 26px; font-weight: 800; }
     .qr { width: 180px; height: 180px; margin: 14px 0; } .breakdown { color: var(--muted); }
     .empty { padding: 20px; background: #fff2f2; border-radius: 8px; }
+    .customer { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 12px 0; }
+    .customer h3 { margin: 0 0 8px; overflow-wrap: anywhere; }
+    .order-lines { margin: 0 0 10px; } .order-lines p { margin: 2px 0; }
+    .unknown { color: #a2601a; }
     @media (max-width: 650px) { main { margin: 0; border-radius: 0; padding: 18px; } .settings { grid-template-columns: 1fr; } }
     @media print { body { background: #fff; } main { margin: 0; max-width: none; } .settings, .actions, .email { display: none; } .payment { break-inside: avoid; } }
   </style>
@@ -29,20 +33,22 @@
 <body>
   <main>
     <h1>Payment information</h1>
-    <p class="muted">Enter each customer’s item total after the combined restaurant order is complete. Shipping is divided exactly across all customers; any one-cent remainder is allocated to the first customers.</p>
-    <section class="settings" aria-label="Payment account and shipping">
+    <p class="muted">Item totals are priced from the menu data the “Scan menu PDF” action committed. Delivery follows the printed menu (€3,95, free from €55,00, minimum €35,00) and is divided exactly across all customers; any one-cent remainder is allocated to the first customers.</p>
+    <section class="settings" aria-label="Payment account">
       <label>Account holder <input id="holder" autocomplete="organization" placeholder="Techers Food" required></label>
       <label>IBAN <input id="iban" autocomplete="off" placeholder="NL00BANK0123456789" required></label>
-      <label>Shipping total (€) <input id="shipping" type="number" min="0" step="0.01" value="0"></label>
     </section>
+    <p class="muted" id="priceSource" aria-live="polite"></p>
     <div class="actions"><button id="create" type="button" disabled>Create payment info</button><button class="secondary" id="print" type="button">Print</button></div>
     <p id="summary" aria-live="polite"></p>
     <section id="customers" aria-label="Customer totals"></section>
     <section id="payments" class="payments" aria-label="Customer payment QR codes"></section>
   </main>
+  <script src="MainItems.js"></script>
+  <script src="MenuRules.js"></script>
   <script src="payment-qr.js"></script>
   <script>
-    // Prompt: tally customer totals, divide shipping, and create QR codes plus a payment page.
+    // Prompt: tally customer totals, apply the menu PDF's delivery fee, and create QR codes plus a payment page.
     // Reason: turn the open-order overview into individual, scannable payment requests without Electron.
     const storedOrders = JSON.parse(localStorage.getItem('techersPaymentOrders') || '[]');
     const byId = id => document.getElementById(id);
@@ -51,15 +57,86 @@
     const validIban = value => /^[A-Z]{2}[0-9A-Z]{13,32}$/.test(value.replace(/\s/g, '').toUpperCase());
     const paymentPayload = (holder, iban, amount, reference) => ['BCD', '002', '1', 'SCT', '', holder, iban, `EUR${(amount / 100).toFixed(2)}`, '', reference.slice(0, 35)].join('\n');
 
+    // Prompt: read the delivery fee and the item prices the scan action committed, instead of asking for totals.
+    // Reason: the PDF states "bezorgen vanaf € 35 - bezorgkosten € 3,95 - gratis bezorgen vanaf € 55,00",
+    // while every printed price now rides on the menu tree's leaves in MainItems.js.
+    const menu = window.AllMainItems || null;
+    const menuRules = window.AllMenuRules || {};
+    const rule = (value, fallback) => (value === null || value === undefined ? fallback : value);
+    const DELIVERY_FEE = cents(rule(menuRules.deliveryFee, 3.95));
+    const FREE_DELIVERY_FROM = cents(rule(menuRules.freeDeliveryFrom, 55));
+    const DELIVERY_MINIMUM = cents(rule(menuRules.deliveryMinimum, 35));
+    const deliveryCost = itemSum => (itemSum >= FREE_DELIVERY_FROM ? 0 : DELIVERY_FEE);
+
+    // Prompt: flatten the menu tree into the same paths the ordering app builds.
+    // Reason: index.html joins the clicked tiles with backslashes, which is the key a price is looked up by.
+    function flattenPrices(node, path, into) {
+      if (!node || typeof node !== 'object') { return into; }
+      const children = Object.keys(node).filter(key => key !== 'IMG' && key !== 'PRICE');
+      if (!children.length) {
+        if (node.PRICE !== null && node.PRICE !== undefined) { into[path.join('\\')] = node.PRICE; }
+        return into;
+      }
+      children.forEach(key => flattenPrices(node[key][0], path.concat(key), into));
+      return into;
+    }
+
+    function menuPrices() {
+      if (!menu) { return null; }
+      const into = {};
+      Object.keys(menu).filter(key => key !== 'IMG').forEach(category => flattenPrices(menu[category][0], [category], into));
+      return into;
+    }
+
+    const priceList = menuPrices();
+
+    // Prompt: price an order from the item paths its issue body holds.
+    // Reason: the app joins the clicked tiles into "Category\Item[\Bread]", which is the key the menu prices use.
+    function priceOrder(order) {
+      const items = []; const unknown = []; let total = 0;
+      String(order.body || '').split('\n').map(line => line.trim()).filter(line => line.length > 0)
+        .forEach(line => {
+          const printed = priceList && Object.prototype.hasOwnProperty.call(priceList, line) ? cents(priceList[line]) : null;
+          if (printed === null) { unknown.push(line); return; }
+          total += printed;
+          const existing = items.find(item => item.name === line);
+          if (existing) { existing.count += 1; existing.total += printed; }
+          else { items.push({ name: line, count: 1, total: printed }); }
+        });
+      return { items: items, unknown: unknown, total: total };
+    }
+
+    const readablePath = path => path.split('\\').join(' · ');
+
     function customerRows() {
       const container = byId('customers');
       container.replaceChildren();
+      byId('priceSource').textContent = priceList
+        ? `Prices loaded from the menu data (${Object.keys(priceList).length} items).`
+        : 'MainItems.js was not found: run the “Scan menu PDF” action to commit it, or type each total below.';
       if (!storedOrders.length) { container.innerHTML = '<p class="empty">No orders were passed from the overview. Return to the overview and select Create payment info.</p>'; return; }
-      const heading = document.createElement('h2'); heading.textContent = 'Item totals'; container.append(heading);
+      const heading = document.createElement('h2'); heading.textContent = 'Order totals'; container.append(heading);
       storedOrders.forEach((order, index) => {
-        const label = document.createElement('label'); label.textContent = order.title;
-        const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.step = '0.01'; input.value = order.itemTotal || '0'; input.dataset.customer = index; input.setAttribute('aria-label', `Item total for ${order.title}`);
-        label.append(input); container.append(label);
+        const priced = priceOrder(order);
+        const card = document.createElement('article'); card.className = 'customer';
+        const who = document.createElement('h3'); who.textContent = order.title;
+        const lines = document.createElement('div'); lines.className = 'order-lines';
+        priced.items.forEach(item => {
+          const line = document.createElement('p'); line.className = 'breakdown';
+          line.textContent = `${item.count} × ${readablePath(item.name)} — ${euros(item.total)}`;
+          lines.append(line);
+        });
+        priced.unknown.forEach(name => {
+          const line = document.createElement('p'); line.className = 'unknown';
+          line.textContent = `No printed price for “${name}”, so add it to this total yourself.`;
+          lines.append(line);
+        });
+        const label = document.createElement('label'); label.textContent = 'Item total (€)';
+        const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.step = '0.01';
+        input.value = (priced.total / 100).toFixed(2); input.dataset.customer = index;
+        input.setAttribute('aria-label', `Item total for ${order.title}`);
+        label.append(input);
+        card.append(who, lines, label); container.append(card);
       });
     }
 
@@ -75,27 +152,34 @@
       }
     }
 
+    // Prompt: sum the priced totals first, then apply the printed delivery rule.
+    // Reason: the fee is fixed at €3,95 and drops to €0 once the combined order reaches €55,00.
     function createPaymentInfo() {
       const holder = byId('holder').value.trim(); const iban = byId('iban').value.replace(/\s/g, '').toUpperCase();
       if (!holder || !validIban(iban)) { byId('summary').textContent = 'Enter an account holder and a valid IBAN first.'; return; }
-      const shipping = cents(byId('shipping').value); const count = storedOrders.length;
-      const baseShare = count ? Math.floor(shipping / count) : 0; const remainder = count ? shipping % count : 0;
       const inputs = [...byId('customers').querySelectorAll('input[data-customer]')]; const payments = byId('payments'); payments.replaceChildren();
       let itemSum = 0;
-      inputs.forEach((input, index) => {
-        const itemTotal = cents(input.value); const deliveryShare = baseShare + (index < remainder ? 1 : 0); const total = itemTotal + deliveryShare; itemSum += itemTotal;
+      const itemTotals = inputs.map(input => { const itemTotal = cents(input.value); itemSum += itemTotal; return itemTotal; });
+      const shipping = deliveryCost(itemSum); const count = itemTotals.length;
+      const baseShare = count ? Math.floor(shipping / count) : 0; const remainder = count ? shipping % count : 0;
+      itemTotals.forEach((itemTotal, index) => {
+        const deliveryShare = baseShare + (index < remainder ? 1 : 0); const total = itemTotal + deliveryShare;
         const order = storedOrders[index]; const reference = `Lunch ${order.title}`;
         const card = document.createElement('article'); card.className = 'payment';
         const name = document.createElement('h2'); name.textContent = order.title;
         const amount = document.createElement('p'); amount.className = 'amount'; amount.textContent = euros(total);
-        const breakdown = document.createElement('p'); breakdown.className = 'breakdown'; breakdown.textContent = `Items ${euros(itemTotal)} + shipping ${euros(deliveryShare)}`;
+        const breakdown = document.createElement('p'); breakdown.className = 'breakdown'; breakdown.textContent = `Items ${euros(itemTotal)} + delivery ${euros(deliveryShare)}`;
         const qr = document.createElement('div'); qr.className = 'qr'; qr.innerHTML = window.TechersQr.svg(paymentPayload(holder, iban, total, reference), { scale: 4 });
         const details = document.createElement('p'); details.textContent = `${holder} · ${iban} · ${reference}`;
         const mail = document.createElement('a'); mail.className = 'email'; mail.textContent = 'Email payment request';
         mail.href = `mailto:${encodeURIComponent(order.title)}?subject=${encodeURIComponent('Techers Food payment request')}&body=${encodeURIComponent(`Please pay ${euros(total)} to ${holder}, IBAN ${iban}. Reference: ${reference}.`)}`;
         card.append(name, amount, breakdown, qr, details, mail); payments.append(card);
       });
-      byId('summary').textContent = `Order items: ${euros(itemSum)} · Shipping: ${euros(shipping)} · Total to collect: ${euros(itemSum + shipping)}`;
+      const deliveryNote = shipping ? '' : ' (free from €55,00)';
+      const minimumNote = itemSum > 0 && itemSum < DELIVERY_MINIMUM ? ' · Below the €35,00 delivery minimum on the menu.' : '';
+      const unpriced = storedOrders.reduce((count, order) => count + priceOrder(order).unknown.length, 0);
+      const unknownNote = unpriced ? ` · ${unpriced} item${unpriced === 1 ? '' : 's'} had no printed price, so check those totals.` : '';
+      byId('summary').textContent = `Order items: ${euros(itemSum)} · Delivery: ${euros(shipping)}${deliveryNote} · Total to collect: ${euros(itemSum + shipping)}${minimumNote}${unknownNote}`;
     }
     customerRows();
     byId('holder').addEventListener('input', updateCreateAvailability);

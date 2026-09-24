@@ -137,6 +137,14 @@
       justify-content: space-between;
       text-align: left;
     }
+    /* The price sits at the far right of the ordered item, next to the remove button. */
+    .SelectionPrice
+    {
+      margin-left: auto;
+      color: var(--accent);
+      font-weight: 600;
+      white-space: nowrap;
+    }
     .RemoveButton
     {
       width: 26px;
@@ -701,6 +709,31 @@
 				Probe.onerror = () => { Tile.style.backgroundImage = "url("+Fallback+")"; };
 				Probe.src = Wanted;
 			}
+			// Prompt: read the printed price the menu data carries on each leaf.
+			// Reason: MainItems.js holds a PRICE number per orderable item, so the app can show and total it.
+			function ItemKeys(Items)
+			{
+				return Object.keys(Items).filter(function(Key) { return Key !== "IMG" && Key !== "PRICE"; });
+			}
+			function FormatPrice(Value)
+			{
+				return "€ " + Number(Value).toFixed(2).replace(".", ",");
+			}
+			function PriceSuffix(Node)
+			{
+				return (Node && Node.PRICE != null) ? " · " + FormatPrice(Node.PRICE) : "";
+			}
+			function FindPrice(Clicks)
+			{
+				let Node = AllMainItems;
+				for (let i = 0; i < Clicks.length; i+=1)
+				{
+					let Child = Node[Clicks[i].value];
+					if(!Child || Child[0] == null) { return null; }
+					Node = Child[0];
+				}
+				return (Node.PRICE == null) ? null : Node.PRICE;
+			}
 			function ShowItems(Items)
 			{
 				//Add the current item to the navigationlist 
@@ -721,14 +754,14 @@
 					ItemList.append(NewItem);
 				}
 				Logo.innerHTML="<img src="+Items.IMG+">";
-				let CurrentItems = Object.keys(Items);
-				for (let i = 1; i < CurrentItems.length; i+=1) //Skip first value (should be IMG)
+				let CurrentItems = ItemKeys(Items);
+				for (let i = 0; i < CurrentItems.length; i+=1) //Only navigation keys, never IMG or PRICE
 				{
 				  let ItemOption = Items[CurrentItems[i]][0];
 				  let NewItem = document.createElement("div");
 				  NewItem.className = "grid-item";
 				  ApplyTileImage(NewItem, ItemOption.IMG, Items.IMG);
-				  NewItem.innerHTML = "<span>"+CurrentItems[i]+"</span>";
+				  NewItem.innerHTML = "<span>"+CurrentItems[i]+PriceSuffix(ItemOption)+"</span>";
 				  NewItem.onclick= (event) => 
 				  {
 					console.log("Clicked on: "+CurrentItems[i]);
@@ -738,7 +771,7 @@
 				  ItemList.append(NewItem);
 				}
 				//if there are no more items to show -> add to selection
-				if(CurrentItems.length == 1){ AddItemToSelection(); }
+				if(CurrentItems.length == 0){ AddItemToSelection(); }
 				else if(Items!=AllMainItems && Object.keys(PreviousClicked).length > 1)
 				{
 					//Add home button
@@ -762,11 +795,22 @@
 				let FullItemString = "";
 				for (let i = 0; i < Object.keys(PreviousClicked).length; i+=1) { FullItemString+=PreviousClicked[i].value+"\\"; }
 				let ItemToAdd = FullItemString.substring(0, FullItemString.length - 1)
+				// Read the price before GoHome clears the clicked path.
+				let ItemPrice = FindPrice(PreviousClicked);
 				GoHome();
 				console.log("Added to order list");
 				let NewItemSelection = document.createElement("div");
 				NewItemSelection.className = "grid-item-selection";
 				NewItemSelection.innerHTML = ItemToAdd;
+				// Prompt: show the printed price beside the ordered item.
+				// Reason: the price sits after the item text, so the order body stays a clean item path.
+				if(ItemPrice != null)
+				{
+					let PriceTag = document.createElement("span");
+					PriceTag.className = "SelectionPrice";
+					PriceTag.textContent = FormatPrice(ItemPrice);
+					NewItemSelection.append(PriceTag);
+				}
 				let RemoveButton = document.createElement("button");
 				RemoveButton.type = "button";
 				RemoveButton.className = "RemoveButton";

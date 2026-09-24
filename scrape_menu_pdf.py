@@ -5,7 +5,8 @@ Usage:
     py scrape_menu_pdf.py <pdf-url> [--out DIR]
 
 Downloads the PDF at <pdf-url>, extracts its text and writes <out>/MainItems.js
-using the nested tree the lunch app already expects. Stdlib plus pypdf.
+using the nested tree the lunch app already expects, with each printed price on
+its leaf, plus <out>/MenuRules.js holding the printed delivery terms.
 
 Prompt: replace the Thuisbezorgd scraper with a PDF menu source.
 Reason: the menu now comes from a Wevers Food PDF, so the desktop launcher and
@@ -116,6 +117,19 @@ LOGO_IMAGE = './img/logo.png'
 PRICE_RE = re.compile(r'€\s*([0-9]+[.,][0-9]{2})')
 NOTE_RE = re.compile(r'\([^)]*\)')
 
+# Prompt: read the prices and the printed delivery terms from the PDF itself.
+# Reason: the prices belong in the menu tree, and the printed footer carries the
+# delivery rule, so the scan action commits both instead of anyone copying them by hand.
+RULES_FILENAME = 'MenuRules.js'
+AMOUNT_RE = re.compile(r'€\s*([0-9]+(?:[.,][0-9]{1,2})?)')
+HALF_SURCHARGE_RE = re.compile(r'half\s+stokbrood\s*\+', re.IGNORECASE)
+DEFAULT_RULES = {
+    'halfStokbroodSurcharge': 1.00,
+    'deliveryFee': 3.95,
+    'freeDeliveryFrom': 55.00,
+    'deliveryMinimum': 35.00,
+}
+
 
 def emit(event, **fields):
     """Emit one JSON progress event on stdout, prefixed with a sentinel."""
@@ -163,6 +177,44 @@ def split_last_price(line):
     return (line[:last.start()] + ' ' + line[last.end():]).strip(), last.group(1)
 
 
+def amount(value):
+    """Return a printed amount as euros, or None when the line has no price."""
+    if not value:
+        return None
+    return round(float(value.replace(',', '.')), 2)
+
+
+def parse_rules(text):
+    """Read the printed delivery terms and the half-stokbrood surcharge."""
+    rules = dict(DEFAULT_RULES)
+    found = set()
+    for line in text.splitlines():
+        parts = re.split(r'[-–]', line)
+        for part in parts:
+            low = part.lower()
+            if 'bezorg' not in low:
+                continue
+            match = AMOUNT_RE.search(part)
+            if not match:
+                continue
+            value = amount(match.group(1))
+            if 'gratis' in low:
+                rules['freeDeliveryFrom'] = value; found.add('freeDeliveryFrom')
+            elif 'bezorgkosten' in low:
+                rules['deliveryFee'] = value; found.add('deliveryFee')
+            elif 'vanaf' in low:
+                rules['deliveryMinimum'] = value; found.add('deliveryMinimum')
+        match = HALF_SURCHARGE_RE.search(line)
+        if match:
+            printed = AMOUNT_RE.search(line[match.end():])
+            if printed:
+                rules['halfStokbroodSurcharge'] = amount(printed.group(1))
+                found.add('halfStokbroodSurcharge')
+    for name in sorted(set(DEFAULT_RULES) - found):
+        emit('warning', message='using the default for %s: the PDF printed no value' % name)
+    return rules
+
+
 def clean_name(raw):
     name = NOTE_RE.sub(' ', raw.strip().strip('.').strip())
     return re.sub(r'\s+', ' ', name).strip(' -')
@@ -205,7 +257,10 @@ def parse_items(text):
             cursor = index + 1
             while cursor < len(lines):
                 nxt = lines[cursor]
-                if nxt.startswith('....') or nxt.lower() in CATEGORY_HEADERS:
+                # Prompt: a featured item's price may sit below the next section header.
+                # Reason: "bruudsje sjérp gehak" is printed above "onze nieuwe sterren",
+                # so a header may only end the search once its price has been read.
+                if nxt.startswith('....') or (price is not None and nxt.lower() in CATEGORY_HEADERS):
                     break
                 if price is None:
                     _, found = split_last_price(nxt)
@@ -230,8 +285,22 @@ def quoted(value):
     return "'" + value + "'"
 
 
-def build_tree(items):
-    """Group items into the AllMainItems tree, adding the bread-choice level."""
+# Prompt: carry each printed price inside the menu tree itself.
+# Reason: the app can then show and total prices straight from the menu data,
+# with no parallel price file to drift away from MainItems.js.
+PRICE_KEY = 'PRICE'
+
+
+def leaf(image, price):
+    """Build a leaf node: IMG must stay the first key, PRICE follows when printed."""
+    node = {'IMG': quoted(image)}
+    if price is not None:
+        node[PRICE_KEY] = price
+    return node
+
+
+def build_tree(items, rules):
+    """Group items into the AllMainItems tree, bread choices and printed prices included."""
     grouped = {}
     for item in items:
         grouped.setdefault(item['category'], []).append(item)
@@ -243,22 +312,62 @@ def build_tree(items):
         node = {'IMG': quoted(CATEGORY_IMAGES[category])}
         for item in entries:
             name = item['name']
-            image = quoted(item_image(name, category))
+            image = item_image(name, category)
+            price = amount(item['price'])
             if category in SANDWICH_CATEGORIES:
                 choices = {}
                 if name not in HALF_ONLY:
-                    choices[FULL_LABEL] = [{'IMG': quoted(BREAD_IMAGE)}]
+                    choices[FULL_LABEL] = [leaf(BREAD_IMAGE, price)]
                 if name not in NO_HALF:
-                    choices['Half stokbrood'] = [{'IMG': quoted(BREAD_IMAGE)}]
-                node[name] = [dict({'IMG': image}, **choices)]
+                    # Prompt: a half stokbrood costs the printed surcharge on top.
+                    # Reason: "half stokbrood spek en ei" is already priced as a half.
+                    half = None if price is None else (price if name in HALF_ONLY
+                                                       else round(price + rules['halfStokbroodSurcharge'], 2))
+                    choices['Half stokbrood'] = [leaf(BREAD_IMAGE, half)]
+                node[name] = [dict({'IMG': quoted(image)}, **choices)]
             else:
-                node[name] = [{'IMG': image}]
+                node[name] = [leaf(image, price)]
         tree[category] = [node]
     return tree
 
 
+def collect_prices(node, path, prices, missing):
+    """Walk the finished tree and record every leaf's path and printed price."""
+    if not isinstance(node, dict):
+        return
+    children = [key for key in node if key not in ('IMG', PRICE_KEY)]
+    if not children:
+        if PRICE_KEY in node:
+            prices['\\'.join(path)] = node[PRICE_KEY]
+        else:
+            missing.append('\\'.join(path))
+        return
+    for key in children:
+        child = node[key]
+        if isinstance(child, list) and child:
+            collect_prices(child[0], path + [key], prices, missing)
+
+
+def tree_prices(tree):
+    """Flatten the tree's prices into the paths the app builds when ordering."""
+    prices = {}
+    missing = []
+    for category, value in tree.items():
+        if category == 'IMG' or not value:
+            continue
+        collect_prices(value[0], [category], prices, missing)
+    return prices, missing
+
+
 def build_js(tree):
     return 'AllMainItems = ' + json.dumps(tree, ensure_ascii=False, indent='\t') + ';\n'
+
+
+def build_rules_js(rules):
+    """Serialise the printed delivery terms, which are not part of the menu tree."""
+    # Prompt: keep the printed delivery terms in a generated file next to the menu.
+    # Reason: they come from the same PDF scan and the payment page needs them as numbers.
+    return 'AllMenuRules = ' + json.dumps(rules, ensure_ascii=False, indent='\t') + ';\n'
 
 
 def tree_event(tree):
@@ -273,7 +382,7 @@ def tree_event(tree):
             if key == 'IMG':
                 continue
             inner = child[0]
-            groups = [group for group in inner.keys() if group != 'IMG']
+            groups = [group for group in inner.keys() if group not in ('IMG', PRICE_KEY)]
             entries.append({'name': key, 'optionGroups': groups})
         categories.append({'name': name, 'itemCount': len(entries), 'items': entries})
     return categories
@@ -291,6 +400,9 @@ def warn_missing_images(tree, out):
             for key, child in node.items():
                 if key == 'IMG':
                     seen.add(str(child).strip("'"))
+                    continue
+                # PRICE is a number, not a child node, so it is not walked.
+                if key == PRICE_KEY:
                     continue
                 stack.extend(child)
     for path in sorted(seen):
@@ -318,27 +430,37 @@ def main():
 
     parse_started = time.time()
     emit('phase_start', phase='parse', label='Reading the menu')
-    items = parse_items(pdf_text(data))
+    text = pdf_text(data)
+    items = parse_items(text)
     if not items:
         fail('no menu items were found in the PDF')
-    tree = build_tree(items)
+    rules = parse_rules(text)
+    tree = build_tree(items, rules)
+    prices, missing = tree_prices(tree)
     emit('progress', phase='parse', detail='%d items' % len(items), done=1, total=1)
     emit('phase_done', phase='parse', elapsed=round(time.time() - parse_started, 1))
 
     write_started = time.time()
-    emit('phase_start', phase='write', label='Writing MainItems.js')
+    emit('phase_start', phase='write', label='Writing the menu and rules')
     destination = os.path.join(args.out, 'MainItems.js')
     with open(destination, 'w', encoding='utf-8') as handle:
         handle.write(build_js(tree))
-    emit('progress', phase='write', detail='MainItems.js', done=1, total=1)
+    emit('progress', phase='write', detail='MainItems.js', done=1, total=2)
+    rules_destination = os.path.join(args.out, RULES_FILENAME)
+    with open(rules_destination, 'w', encoding='utf-8') as handle:
+        handle.write(build_rules_js(rules))
+    emit('progress', phase='write', detail=RULES_FILENAME, done=2, total=2)
     emit('phase_done', phase='write', elapsed=round(time.time() - write_started, 1))
 
+    for path in missing:
+        emit('warning', message='the PDF printed no price for: %s' % path)
     categories = tree_event(tree)
     emit('tree', categories=categories)
     groups = sum(len(entry['optionGroups']) for category in categories for entry in category['items'])
     emit('summary', categories=len(categories), items=len(items), groups=groups,
+         prices=len(prices), missing_prices=len(missing),
          images=warn_missing_images(tree, args.out), elapsed=round(time.time() - started, 1))
-    emit('done', output=destination)
+    emit('done', output=destination, rules_output=rules_destination)
 
 
 if __name__ == '__main__':

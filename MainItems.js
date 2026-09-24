@@ -8,12 +8,14 @@ AllMainItems = {
 					"IMG": "'./img/koude broodjes.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.5
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.5
 						}
 					]
 				}
@@ -23,12 +25,14 @@ AllMainItems = {
 					"IMG": "'./img/koude broodjes.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.5
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.5
 						}
 					]
 				}
@@ -38,12 +42,14 @@ AllMainItems = {
 					"IMG": "'./img/koude broodjes.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.25
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.25
 						}
 					]
 				}
@@ -53,12 +59,14 @@ AllMainItems = {
 					"IMG": "'./img/koude broodjes.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.25
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.25
 						}
 					]
 				}
@@ -68,12 +76,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje gerookte zalm met kruidenkaas.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.95
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.95
 						}
 					]
 				}
@@ -83,12 +93,14 @@ AllMainItems = {
 					"IMG": "'./img/koude broodjes.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.5
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.5
 						}
 					]
 				}
@@ -98,12 +110,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje mozzarella tomaat.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 7.25
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.25
 						}
 					]
 				}
@@ -113,12 +127,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje rundercarpaccio.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.5
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.5
 						}
 					]
 				}
@@ -133,7 +149,8 @@ AllMainItems = {
 					"IMG": "'./img/bufkes specials.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 7.25
 						}
 					]
 				}
@@ -148,12 +165,14 @@ AllMainItems = {
 					"IMG": "'./img/koude broodjes.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 5.0
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 6.0
 						}
 					]
 				}
@@ -163,12 +182,14 @@ AllMainItems = {
 					"IMG": "'./img/koude broodjes.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 5.7
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 6.7
 						}
 					]
 				}
@@ -178,12 +199,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje gezond.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 7.95
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.95
 						}
 					]
 				}
@@ -193,12 +216,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje brie met vijgenjam.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 7.95
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.95
 						}
 					]
 				}
@@ -208,12 +233,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje filet americain.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 7.85
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.85
 						}
 					]
 				}
@@ -223,12 +250,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje filet americain martino.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 7.95
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.95
 						}
 					]
 				}
@@ -238,12 +267,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje huisgemaakte eiersalade met spek.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 7.5
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.5
 						}
 					]
 				}
@@ -253,12 +284,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje huisgemaakte tonijnsalade.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 7.95
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.95
 						}
 					]
 				}
@@ -268,12 +301,14 @@ AllMainItems = {
 					"IMG": "'./img/koude broodjes.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 7.95
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.95
 						}
 					]
 				}
@@ -285,32 +320,38 @@ AllMainItems = {
 			"IMG": "'./img/koude dranken.jpg'",
 			"Redbull / chocomel": [
 				{
-					"IMG": "'./img/red bull energy drink 250ml.jpg'"
+					"IMG": "'./img/red bull energy drink 250ml.jpg'",
+					"PRICE": 3.5
 				}
 			],
 			"Coca cola - coca cola zero": [
 				{
-					"IMG": "'./img/coca-cola 500ml.jpg'"
+					"IMG": "'./img/coca-cola 500ml.jpg'",
+					"PRICE": 3.25
 				}
 			],
 			"Ice tea regular / green / peach": [
 				{
-					"IMG": "'./img/fuze tea black tea peach hibiscus 400ml.jpg'"
+					"IMG": "'./img/fuze tea black tea peach hibiscus 400ml.jpg'",
+					"PRICE": 3.25
 				}
 			],
 			"Fanta / fanta cassis": [
 				{
-					"IMG": "'./img/fanta orange 500ml.jpg'"
+					"IMG": "'./img/fanta orange 500ml.jpg'",
+					"PRICE": 3.25
 				}
 			],
 			"Pellegrino / evian": [
 				{
-					"IMG": "'./img/chaudfontaine blauw 500ml.jpg'"
+					"IMG": "'./img/chaudfontaine blauw 500ml.jpg'",
+					"PRICE": 3.25
 				}
 			],
 			"Sappen": [
 				{
-					"IMG": "'./img/verse jus d orange groot.jpg'"
+					"IMG": "'./img/verse jus d orange groot.jpg'",
+					"PRICE": 3.25
 				}
 			]
 		}
@@ -323,12 +364,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje bufkesbal.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 7.95
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.95
 						}
 					]
 				}
@@ -338,12 +381,14 @@ AllMainItems = {
 					"IMG": "'./img/warme broodjes.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.25
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.25
 						}
 					]
 				}
@@ -353,12 +398,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje kipkrokant.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.25
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.25
 						}
 					]
 				}
@@ -368,12 +415,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje oosterse kip.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.25
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.25
 						}
 					]
 				}
@@ -383,12 +432,14 @@ AllMainItems = {
 					"IMG": "'./img/warme broodjes.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.25
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.25
 						}
 					]
 				}
@@ -398,12 +449,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje sticky bbq.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.95
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.95
 						}
 					]
 				}
@@ -413,12 +466,14 @@ AllMainItems = {
 					"IMG": "'./img/broodje werrem sjink.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 7.95
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.95
 						}
 					]
 				}
@@ -428,7 +483,8 @@ AllMainItems = {
 					"IMG": "'./img/warme broodjes.jpg'",
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 7.0
 						}
 					]
 				}
@@ -443,12 +499,14 @@ AllMainItems = {
 					"IMG": "'./img/bufkes specials.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.5
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.5
 						}
 					]
 				}
@@ -463,12 +521,14 @@ AllMainItems = {
 					"IMG": "'./img/bufkes specials.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.25
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.25
 						}
 					]
 				}
@@ -478,12 +538,14 @@ AllMainItems = {
 					"IMG": "'./img/bufkes specials.jpg'",
 					"Standaard": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 8.95
 						}
 					],
 					"Half stokbrood": [
 						{
-							"IMG": "'./img/keuze broodje.jpg'"
+							"IMG": "'./img/keuze broodje.jpg'",
+							"PRICE": 9.95
 						}
 					]
 				}
@@ -495,12 +557,14 @@ AllMainItems = {
 			"IMG": "'./img/wraps.jpg'",
 			"Wrap gerookte zalm": [
 				{
-					"IMG": "'./img/wrap gerookte zalm.jpg'"
+					"IMG": "'./img/wrap gerookte zalm.jpg'",
+					"PRICE": 8.95
 				}
 			],
 			"Wrap carpaccio": [
 				{
-					"IMG": "'./img/wraps.jpg'"
+					"IMG": "'./img/wraps.jpg'",
+					"PRICE": 8.5
 				}
 			]
 		}
